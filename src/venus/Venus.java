@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.HashMap;
 
 /**
  * Created by Dawnwords on 2014/5/6.
@@ -31,6 +32,26 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
     @Override
     public void breakCallBack(FID fid) throws RemoteException {
 
+    }
+
+    public String[] listFile() {
+        FileHandler currentDirHandler = fetch(currentDir);
+        HashMap<String, FID> map = getNameFIDMap(currentDirHandler.getData());
+        return map.keySet().toArray(new String[map.size()]);
+    }
+
+    private HashMap<String, FID> getNameFIDMap(byte[] data) {
+        int i = 0;
+        HashMap<String, FID> map = new HashMap<String, FID>();
+        while (i < data.length) {
+            byte[] fileName = new byte[Parameter.FILE_NAME_LEN];
+            byte[] fid = new byte[Parameter.FILE_BLOCK_NAME_LEN];
+            System.arraycopy(data, i, fileName, 0, fileName.length);
+            System.arraycopy(data, i + fileName.length, fid, 0, fid.length);
+            map.put(new String(fileName), new FID(fid));
+            i += Parameter.FILE_ITEM_LEN;
+        }
+        return map;
     }
 
     public boolean createFile(String name) {
