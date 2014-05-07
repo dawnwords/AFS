@@ -68,6 +68,7 @@ public class Main {
             System.arraycopy(tokens, 1, arguments, 0, arguments.length);
 
             try {
+                cmd = Character.toUpperCase(cmd.charAt(0)) + cmd.substring(1);
                 Class cmdClass = Class.forName("venus.cmd." + cmd + "Command");
                 Command command = (Command) cmdClass.newInstance();
                 if (command.checkArgs(arguments)) {
@@ -75,7 +76,7 @@ public class Main {
                 } else {
                     System.err.printf("Argument Error: should be(%s)\n", command.getArgFormat());
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 e.printStackTrace();
                 System.err.println("No Such Command");
             }

@@ -9,6 +9,7 @@ import java.io.*;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Created by Dawnwords on 2014/5/5.
@@ -20,7 +21,7 @@ public class FileSystemUtil {
         if (!serverDir.exists()) {
             serverDir.mkdir();
         }
-        createFile(Parameter.ROOT_FID, true);
+        createFile(Parameter.ROOT_FID, Parameter.ROOT_FID);
     }
 
     public static void close(Closeable closeable) {
@@ -33,9 +34,9 @@ public class FileSystemUtil {
         }
     }
 
-    public static synchronized FID createFile(long userId, int uniquifier, boolean isDir) {
+    public static synchronized FID createFile(long userId, int uniquifier, FID parentDir) {
         FID fid = new FID(userId, uniquifier);
-        createFile(fid, isDir);
+        createFile(fid, parentDir);
         return fid;
     }
 
@@ -125,7 +126,7 @@ public class FileSystemUtil {
     }
 
 
-    private static void createFile(FID fid, boolean isDir) {
+    private static void createFile(FID fid, FID parentDir) {
         File file = new File(Parameter.VICE_DIR + fid.toString());
 
         if (!file.exists()) {
@@ -134,9 +135,8 @@ public class FileSystemUtil {
                 file.createNewFile();
                 long userId = fid.getUserId();
                 long time = System.currentTimeMillis();
-                FileHandler handler = FileHandler.createFileHandler(isDir ?
-                        FileAttributes.createDirectoryAttributes(time, time, userId, userId)
-                        : FileAttributes.createFileAttributes(time, time, 0, userId, userId));
+                FileAttributes attr = FileAttributes.createFileAttributes(time, time, 0, userId, userId, parentDir);
+                FileHandler handler = FileHandler.createFileHandler(attr);
                 fos = new FileOutputStream(file);
                 fos.write(handler.getBytes());
                 fos.flush();
@@ -149,17 +149,16 @@ public class FileSystemUtil {
         }
     }
 
-
-    public static LinkedHashMap<String, FID> getNameFIDMap(FileHandler handler) {
+    public static Map<String, FID> getNameFIDMap(FileHandler handler) {
         int i = 0;
         byte[] data = handler.getData();
-        LinkedHashMap<String, FID> map = new LinkedHashMap<String, FID>();
+        Map<String, FID> map = new LinkedHashMap<String, FID>();
         while (i < data.length) {
             byte[] fileName = new byte[Parameter.FILE_NAME_LEN];
             byte[] fid = new byte[Parameter.FILE_BLOCK_NAME_LEN];
             System.arraycopy(data, i, fileName, 0, fileName.length);
             System.arraycopy(data, i + fileName.length, fid, 0, fid.length);
-            map.put(new String(fileName), new FID(fid));
+            map.put(DataTypeUtil.byteArray2String(fileName), new FID(fid));
             i += Parameter.FILE_ITEM_LEN;
         }
         return map;

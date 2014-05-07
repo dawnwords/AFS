@@ -10,11 +10,10 @@ import java.io.Serializable;
  * Created by Dawnwords on 2014/5/4.
  */
 public class FileAttributes implements Serializable {
-    public static final int DIRECTORY_SIZE = -1;
-
     private long createdTime, modifiedTime;
     private long creatorId, modifierId;
     private int fileSize;
+    private FID parentDir;
 
     public FileAttributes() {
     }
@@ -22,42 +21,22 @@ public class FileAttributes implements Serializable {
     public void modify(long userId, int newSize) {
         modifiedTime = System.currentTimeMillis();
         modifierId = userId;
-        if (fileSize != DIRECTORY_SIZE) {
-            fileSize = newSize;
-        }
+        fileSize = newSize;
     }
 
-    public long getCreatedTime() {
-        return createdTime;
+    public FID getParentDir() {
+        return parentDir;
     }
 
-    public long getModifiedTime() {
-        return modifiedTime;
-    }
-
-    public int getFileSize() {
-        return fileSize;
-    }
-
-    public long getCreatorId() {
-        return creatorId;
-    }
-
-    public long getModifierId() {
-        return modifierId;
-    }
-
-    public boolean isFile() {
-        return fileSize > 0;
-    }
-
-    public static FileAttributes createFileAttributes(long createdTime, long modifiedTime, int fileSize, long creatorId, long modifierId) {
+    public static FileAttributes createFileAttributes(long createdTime, long modifiedTime,
+                                                      int fileSize, long creatorId, long modifierId, FID parentDir) {
         FileAttributes result = new FileAttributes();
         result.creatorId = creatorId;
         result.createdTime = createdTime;
         result.fileSize = fileSize;
         result.modifiedTime = modifiedTime;
         result.modifierId = modifierId;
+        result.parentDir = parentDir;
         return result;
     }
 
@@ -68,11 +47,8 @@ public class FileAttributes implements Serializable {
         result.creatorId = DataTypeUtil.byteArray2Long(DataTypeUtil.subArray(bytes, 16, 8));
         result.modifierId = DataTypeUtil.byteArray2Long(DataTypeUtil.subArray(bytes, 24, 8));
         result.fileSize = DataTypeUtil.byteArray2Int(DataTypeUtil.subArray(bytes, 32, 4));
+        result.parentDir = new FID(DataTypeUtil.subArray(bytes, 36, 12));
         return result;
-    }
-
-    public static FileAttributes createDirectoryAttributes(long createdTime, long modifiedTime, long creatorId, long modifierId) {
-        return createFileAttributes(createdTime, modifiedTime, DIRECTORY_SIZE, creatorId, modifierId);
     }
 
     public byte[] getBytes() {
@@ -85,6 +61,7 @@ public class FileAttributes implements Serializable {
             bos.write(DataTypeUtil.long2ByteArray(creatorId));
             bos.write(DataTypeUtil.long2ByteArray(modifierId));
             bos.write(DataTypeUtil.int2ByteArray(fileSize));
+            bos.write(parentDir.getBytes());
             bos.flush();
             result = bos.toByteArray();
         } catch (Exception e) {

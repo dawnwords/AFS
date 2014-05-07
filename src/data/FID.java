@@ -26,16 +26,20 @@ public class FID implements Serializable {
     }
 
     public FID(byte[] bytes) {
-        this.userId = DataTypeUtil.byteArray2Int(DataTypeUtil.subArray(bytes, 0, 8));
+        this.userId = DataTypeUtil.byteArray2Long(DataTypeUtil.subArray(bytes, 0, 8));
         this.uniquifier = DataTypeUtil.byteArray2Int(DataTypeUtil.subArray(bytes, 8, 4));
     }
 
     public int getUniquifier() {
-        return uniquifier;
+        return Math.abs(uniquifier);
     }
 
     public long getUserId() {
         return userId;
+    }
+
+    public boolean isDirectory() {
+        return uniquifier < 0;
     }
 
     public byte[] getBytes() {

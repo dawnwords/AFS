@@ -5,22 +5,21 @@ import venus.Venus;
 /**
  * Created by Dawnwords on 2014/5/7.
  */
-public class LsCommand implements Command {
+public class CdCommand implements Command {
     @Override
     public void processCommand(Venus venus, String[] arg) {
-        String[] files = venus.listFile();
-        for (String file : files) {
-            System.out.println(file);
+        if (!venus.changeDir(arg[0])) {
+            System.out.println("No Such Directory");
         }
     }
 
     @Override
     public boolean checkArgs(String[] args) {
-        return true;
+        return args.length == 1;
     }
 
     @Override
     public String getArgFormat() {
-        return "";
+        return "%dirname";
     }
 }

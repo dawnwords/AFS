@@ -115,4 +115,14 @@ public class DataTypeUtil {
         arrayWrite(result, a1.length, a2);
         return result;
     }
+
+    public static String byteArray2String(byte[] fileName) {
+        int i = 0;
+        for (; i < fileName.length; i++) {
+            if (fileName[i] == 0) {
+                return new String(subArray(fileName, 0, i));
+            }
+        }
+        return new String(fileName);
+    }
 }

@@ -11,7 +11,7 @@ import util.FileSystemUtil;
 import java.io.File;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Created by Dawnwords on 2014/5/6.
@@ -35,13 +35,33 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
 
     public String[] listFile() {
         FileHandler currentDirHandler = fetch(currentDir);
-        LinkedHashMap<String, FID> map = FileSystemUtil.getNameFIDMap(currentDirHandler);
-        return map.keySet().toArray(new String[map.size()]);
+        Map<String, FID> map = FileSystemUtil.getNameFIDMap(currentDirHandler);
+        String[] result = new String[map.size()];
+        int i = 0;
+        for (String name : map.keySet()) {
+            result[i++] = map.get(name).isDirectory() ? String.format("F{%s}", name) : name;
+        }
+        return result;
+    }
+
+    public boolean changeDir(String name) {
+        FileHandler currentDirHandler = fetch(currentDir);
+        if ("..".equals(name)) {
+            currentDir = currentDirHandler.getAttributes().getParentDir();
+            return true;
+        }
+        Map<String, FID> map = FileSystemUtil.getNameFIDMap(currentDirHandler);
+        FID newCurrentDir = map.get(name);
+        if (newCurrentDir != null && newCurrentDir.isDirectory()) {
+            currentDir = newCurrentDir;
+            return true;
+        }
+        return false;
     }
 
     public boolean remove(String name) {
         FileHandler currentDirHandler = fetch(currentDir);
-        LinkedHashMap<String, FID> map = FileSystemUtil.getNameFIDMap(currentDirHandler);
+        Map<String, FID> map = FileSystemUtil.getNameFIDMap(currentDirHandler);
         FID toRemove = map.remove(name);
         if (toRemove != null) {
             updateDirectoryHandler(currentDirHandler, map);
@@ -65,10 +85,7 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
         return create(name, true);
     }
 
-    private void updateDirectoryHandler(FileHandler dir, LinkedHashMap<String, FID> map) {
-        if (dir.getAttributes().isFile()) {
-            return;
-        }
+    private void updateDirectoryHandler(FileHandler dir, Map<String, FID> map) {
         byte[] newBytes = new byte[Parameter.FILE_ITEM_LEN * map.size()];
         int start = 0;
         for (String name : map.keySet()) {
@@ -78,15 +95,15 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
             start += Parameter.FILE_ITEM_LEN;
         }
         dir.setData(newBytes);
-        dir.getAttributes().modify(userId, newBytes.length + Parameter.FILE_ITEM_LEN);
+        dir.getAttributes().modify(userId, newBytes.length);
     }
 
     private boolean create(String name, boolean isDir) {
         try {
             FileHandler currentDirHandler = fetch(currentDir);
-            FID fid = isDir ? vice.makeDir(userId) : vice.create(userId);
+            FID fid = isDir ? vice.makeDir(currentDir, userId) : vice.create(userId);
             if (currentDirHandler != null) {
-                LinkedHashMap<String, FID> map = FileSystemUtil.getNameFIDMap(currentDirHandler);
+                Map<String, FID> map = FileSystemUtil.getNameFIDMap(currentDirHandler);
                 map.put(name, fid);
                 updateDirectoryHandler(currentDirHandler, map);
                 store(currentDir, currentDirHandler);

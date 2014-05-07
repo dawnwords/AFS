@@ -20,7 +20,7 @@ public interface ViceInterface extends Remote {
 
     FID create(long userid) throws RemoteException;
 
-    FID makeDir(long userid) throws RemoteException;
+    FID makeDir(FID parent, long userid) throws RemoteException;
 
     void remove(FID fid, long userid) throws RemoteException;
 

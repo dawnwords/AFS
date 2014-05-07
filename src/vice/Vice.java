@@ -57,14 +57,14 @@ public class Vice extends UnicastRemoteObject implements ViceInterface {
 
     @Override
     public FID create(long userId) throws RemoteException {
-        FID fid = FileSystemUtil.createFile(userId, uniquifier.getAndIncrement(), false);
+        FID fid = FileSystemUtil.createFile(userId, uniquifier.getAndIncrement(), Parameter.NULL_FID);
         Log.getInstance().i("userId:%d create file %s", userId, fid);
         return fid;
     }
 
     @Override
-    public FID makeDir(long userId) throws RemoteException {
-        FID fid = FileSystemUtil.createFile(userId, uniquifier.getAndIncrement(), true);
+    public FID makeDir(FID parent, long userId) throws RemoteException {
+        FID fid = FileSystemUtil.createFile(userId, -uniquifier.getAndIncrement(), parent);
         Log.getInstance().i("userId:%d make directory %s", userId, fid);
         return fid;
     }

@@ -17,7 +17,8 @@ public class Parameter {
     public static final int FILE_SIZE = 64 * 1024;
 
     public static final String VICE_DIR = "D:" + File.separator + "afs.server" + File.separator;
-    public static final FID ROOT_FID = new FID(0, 1);
+    public static final FID ROOT_FID = new FID(0, -1);
+    public static final FID NULL_FID = new FID(0, 0);
     public static final String KEY = "19920526";
     public static final byte[] ALIGNMENT = new byte[Parameter.ALIGN_LEN + Parameter.FILE_BLOCK_NAME_LEN];
 
