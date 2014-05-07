@@ -6,6 +6,8 @@ import data.FileHandler;
 import data.Parameter;
 
 import java.io.*;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
 
 /**
  * Created by Dawnwords on 2014/5/5.
@@ -78,6 +80,37 @@ public class FileSystemUtil {
         } finally {
             close(fos);
         }
+    }
+
+    public static boolean writeWithChecksum(FID fid, byte[] data) {
+        DigestInputStream dis = null;
+        FileOutputStream fos = null;
+        String fileName = Parameter.VENUS_DIR + fid.toString();
+        byte[] newMD5, oldMD5;
+        try {
+            if (new File(fileName).exists()) {
+                MessageDigest md = MessageDigest.getInstance("MD5");
+                newMD5 = md.digest(data);
+
+                dis = new DigestInputStream(new FileInputStream(fileName), md);
+                dis.read(new byte[dis.available()]);
+                oldMD5 = md.digest();
+
+                if (DataTypeUtil.byteArrayEquals(newMD5, oldMD5)) {
+                    return false;
+                }
+            }
+
+            fos = new FileOutputStream(fileName);
+            fos.write(data);
+            fos.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            close(dis);
+            close(fos);
+        }
+        return true;
     }
 
     public static int getStartUniquifier() {

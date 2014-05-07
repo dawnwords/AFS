@@ -78,6 +78,18 @@ public class DataTypeUtil {
         };
     }
 
+    public static boolean byteArrayEquals(byte[] a1, byte[] a2) {
+        if (a1.length != a2.length) {
+            return false;
+        }
+        for (int i = 0; i < a1.length; i++) {
+            if (a1[i] != a2[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public static long longHash(String string) {
         long h = 1125899906842597L; // prime
         int len = string.length();
