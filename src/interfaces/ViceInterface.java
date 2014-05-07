@@ -14,21 +14,21 @@ public interface ViceInterface extends Remote {
     /**
      * Basic 8 Components of Vice Service Interface
      */
-    FileHandler fetch(FID fid, int userId) throws RemoteException;
+    FileHandler fetch(FID fid, long userid) throws RemoteException;
 
-    void store(FID fid, FileHandler handler, int userId) throws RemoteException;
+    void store(FID fid, FileHandler handler, long userid) throws RemoteException;
 
-    FID create(int userId) throws RemoteException;
+    FID create(long userid) throws RemoteException;
 
-    FID makeDir(int userId) throws RemoteException;
+    FID makeDir(long userid) throws RemoteException;
 
-    void remove(FID fid, int userId) throws RemoteException;
+    void remove(FID fid, long userid) throws RemoteException;
 
-    void setLock(FID fid, LockMode mode, int userId) throws RemoteException;
+    void setLock(FID fid, LockMode mode, long userid) throws RemoteException;
 
-    void releaseLock(FID fid, int userId) throws RemoteException;
+    void releaseLock(FID fid, long userid) throws RemoteException;
 
-    void removeCallback(FID fid, int userId) throws RemoteException;
+    void removeCallback(FID fid, long userid) throws RemoteException;
 
     /**
      * For Server Callback

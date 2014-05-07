@@ -28,15 +28,9 @@ public class FileHandler implements Serializable {
     }
 
     public byte[] getBytes() {
-        byte[] result;
-        if (attributes != null) {
-            result = new byte[data.length + Parameter.FILE_ITEM_LEN];
-            DataTypeUtil.arrayWrite(result, 0, attributes.getBytes());
-            DataTypeUtil.arrayWrite(result, Parameter.FILE_ITEM_LEN, data);
-        } else {
-            result = new byte[data.length];
-            DataTypeUtil.arrayWrite(result, 0, data);
-        }
+        byte[] result = new byte[data.length + Parameter.FILE_ITEM_LEN];
+        DataTypeUtil.arrayWrite(result, 0, attributes.getBytes());
+        DataTypeUtil.arrayWrite(result, Parameter.FILE_ITEM_LEN, data);
         return result;
     }
 

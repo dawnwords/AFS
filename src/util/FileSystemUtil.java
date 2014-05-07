@@ -8,6 +8,7 @@ import data.Parameter;
 import java.io.*;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
+import java.util.LinkedHashMap;
 
 /**
  * Created by Dawnwords on 2014/5/5.
@@ -32,8 +33,8 @@ public class FileSystemUtil {
         }
     }
 
-    public static synchronized FID createFile(int userId, int uniquifier, boolean isDir) {
-        FID fid = new FID(userId, 0, uniquifier);
+    public static synchronized FID createFile(long userId, int uniquifier, boolean isDir) {
+        FID fid = new FID(userId, uniquifier);
         createFile(fid, isDir);
         return fid;
     }
@@ -42,16 +43,12 @@ public class FileSystemUtil {
         // TODO callback promise
         byte[] file = read(fid, rootDir);
 
-        if (fid.getPart() == 0) {
-            FileAttributes attributes = FileAttributes.createFileAttributes(file);
-            byte[] data = new byte[file.length - Parameter.FILE_ITEM_LEN];
-            if (file.length > Parameter.FILE_ITEM_LEN) {
-                System.arraycopy(file, Parameter.FILE_ITEM_LEN, data, 0, data.length);
-            }
-            return FileHandler.createFileHandler(attributes, data);
-        } else {
-            return FileHandler.createFileHandler(file);
+        FileAttributes attributes = FileAttributes.createFileAttributes(file);
+        byte[] data = new byte[file.length - Parameter.FILE_ITEM_LEN];
+        if (file.length > Parameter.FILE_ITEM_LEN) {
+            System.arraycopy(file, Parameter.FILE_ITEM_LEN, data, 0, data.length);
         }
+        return FileHandler.createFileHandler(attributes, data);
     }
 
     private static byte[] read(FID fid, String rootDir) {
@@ -135,7 +132,7 @@ public class FileSystemUtil {
             FileOutputStream fos = null;
             try {
                 file.createNewFile();
-                int userId = fid.getUserId();
+                long userId = fid.getUserId();
                 long time = System.currentTimeMillis();
                 FileHandler handler = FileHandler.createFileHandler(isDir ?
                         FileAttributes.createDirectoryAttributes(time, time, userId, userId)
@@ -153,4 +150,18 @@ public class FileSystemUtil {
     }
 
 
+    public static LinkedHashMap<String, FID> getNameFIDMap(FileHandler handler) {
+        int i = 0;
+        byte[] data = handler.getData();
+        LinkedHashMap<String, FID> map = new LinkedHashMap<String, FID>();
+        while (i < data.length) {
+            byte[] fileName = new byte[Parameter.FILE_NAME_LEN];
+            byte[] fid = new byte[Parameter.FILE_BLOCK_NAME_LEN];
+            System.arraycopy(data, i, fileName, 0, fileName.length);
+            System.arraycopy(data, i + fileName.length, fid, 0, fid.length);
+            map.put(new String(fileName), new FID(fid));
+            i += Parameter.FILE_ITEM_LEN;
+        }
+        return map;
+    }
 }
