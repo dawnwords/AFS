@@ -8,7 +8,6 @@ import interfaces.ViceInterface;
 import util.DataTypeUtil;
 import util.FileSystemUtil;
 
-import java.io.File;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Map;
@@ -30,31 +29,36 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
 
     @Override
     public void breakCallBack(FID fid) throws RemoteException {
-
+        cancelCallback(fid);
     }
 
     public String[] listFile() {
         FileHandler currentDirHandler = fetch(currentDir);
-        Map<String, FID> map = FileSystemUtil.getNameFIDMap(currentDirHandler);
-        String[] result = new String[map.size()];
-        int i = 0;
-        for (String name : map.keySet()) {
-            result[i++] = map.get(name).isDirectory() ? String.format("F{%s}", name) : name;
+        if (currentDirHandler != null) {
+            Map<String, FID> map = FileSystemUtil.getNameFIDMap(currentDirHandler);
+            String[] result = new String[map.size()];
+            int i = 0;
+            for (String name : map.keySet()) {
+                result[i++] = map.get(name).isDirectory() ? String.format("F{%s}", name) : name;
+            }
+            return result;
         }
-        return result;
+        return new String[0];
     }
 
     public boolean changeDir(String name) {
         FileHandler currentDirHandler = fetch(currentDir);
-        if ("..".equals(name)) {
-            currentDir = currentDirHandler.getAttributes().getParentDir();
-            return true;
-        }
-        Map<String, FID> map = FileSystemUtil.getNameFIDMap(currentDirHandler);
-        FID newCurrentDir = map.get(name);
-        if (newCurrentDir != null && newCurrentDir.isDirectory()) {
-            currentDir = newCurrentDir;
-            return true;
+        if (currentDirHandler != null) {
+            if (Parameter.PARENT_DIR.equals(name)) {
+                currentDir = currentDirHandler.getAttributes().getParentDir();
+                return true;
+            }
+            Map<String, FID> map = FileSystemUtil.getNameFIDMap(currentDirHandler);
+            FID newCurrentDir = map.get(name);
+            if (newCurrentDir != null && newCurrentDir.isDirectory()) {
+                currentDir = newCurrentDir;
+                return true;
+            }
         }
         return false;
     }
@@ -66,16 +70,11 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
         if (toRemove != null) {
             updateDirectoryHandler(currentDirHandler, map);
             store(currentDir, currentDirHandler);
-            try {
-                vice.remove(toRemove, userId);
-                return true;
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+            remove(toRemove);
+            return true;
         }
         return false;
     }
-
 
     public boolean createFile(String name) {
         return create(name, false);
@@ -104,11 +103,13 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
             FID fid = isDir ? vice.makeDir(currentDir, userId) : vice.create(userId);
             if (currentDirHandler != null) {
                 Map<String, FID> map = FileSystemUtil.getNameFIDMap(currentDirHandler);
-                map.put(name, fid);
-                updateDirectoryHandler(currentDirHandler, map);
-                store(currentDir, currentDirHandler);
-                fetch(fid);
-                return true;
+                if (!map.containsKey(name)) {
+                    map.put(name, fid);
+                    updateDirectoryHandler(currentDirHandler, map);
+                    store(currentDir, currentDirHandler);
+                    fetch(fid);
+                    return true;
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -122,6 +123,7 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
             // update remote
             try {
                 vice.store(fid, handler, userId);
+                vice.removeCallback(fid, userId);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -129,20 +131,64 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
     }
 
     private FileHandler fetch(FID fid) {
-        File file = new File(Parameter.VENUS_DIR + fid);
-        if (file.exists()) {
-            //TODO check callback promise
+        if (getCallbackPromise(fid)) {
             return FileSystemUtil.readFile(fid, Parameter.VENUS_DIR);
         }
 
         FileHandler handler = null;
         try {
             handler = vice.fetch(fid, userId);
-            FileSystemUtil.writeFile(fid, handler, Parameter.VENUS_DIR);
+            if (handler != null) {
+                FileSystemUtil.writeFile(fid, handler, Parameter.VENUS_DIR);
+                validCallback(fid);
+            } else {
+                FileSystemUtil.removeFile(fid, Parameter.VENUS_DIR);
+                removeCallbackPromise(fid);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
         return handler;
     }
 
+    private void remove(FID fid) {
+        if (FileSystemUtil.fileExist(fid, Parameter.VENUS_DIR)) {
+            if (fid.isDirectory()) {
+                for (FID child : FileSystemUtil.getNameFIDMap(fetch(fid)).values()) {
+                    remove(child);
+                }
+            }
+            FileSystemUtil.removeFile(fid, Parameter.VENUS_DIR);
+        }
+        try {
+            vice.remove(fid, userId);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void cancelCallback(FID fid) {
+        saveCallbackPromise(fid, false);
+    }
+
+    private void validCallback(FID fid) {
+        saveCallbackPromise(fid, true);
+    }
+
+    private boolean getCallbackPromise(FID fid) {
+        Boolean result = FileSystemUtil.getLocalCallbackPromise().get(fid);
+        return result != null && result;
+    }
+
+    private void removeCallbackPromise(FID fid) {
+        Map<FID, Boolean> map = FileSystemUtil.getLocalCallbackPromise();
+        map.remove(fid);
+        FileSystemUtil.storeLocalCallbackPromise(map);
+    }
+
+    private void saveCallbackPromise(FID fid, boolean b) {
+        Map<FID, Boolean> map = FileSystemUtil.getLocalCallbackPromise();
+        map.put(fid, b);
+        FileSystemUtil.storeLocalCallbackPromise(map);
+    }
 }

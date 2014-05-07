@@ -13,6 +13,7 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -36,7 +37,7 @@ public class Vice extends UnicastRemoteObject implements ViceInterface {
             VenusInterface venus = (VenusInterface) Naming.lookup(rmi);
             long userId = DataTypeUtil.longHash(rmi);
             clientMap.put(userId, venus);
-            Log.getInstance().i("userId:%d register", userId);
+            Log.getInstance().i("userId:%x register", userId);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -44,34 +45,35 @@ public class Vice extends UnicastRemoteObject implements ViceInterface {
 
     @Override
     public FileHandler fetch(FID fid, long userId) throws RemoteException {
-        Log.getInstance().i("userId:%d fetch:%s", userId, fid);
+        Log.getInstance().i("userId:%x fetch:%s", userId, fid);
+        FileSystemUtil.addCallbackPromise(fid, userId);
         return FileSystemUtil.readFile(fid, Parameter.VICE_DIR);
     }
 
     @Override
     public void store(FID fid, FileHandler handler, long userId) throws RemoteException {
-        // TODO check callback promise
-        Log.getInstance().i("userId:%d store:%s", userId, fid);
+        Log.getInstance().i("userId:%x store:%s", userId, fid);
         FileSystemUtil.writeFile(fid, handler, Parameter.VICE_DIR);
     }
 
     @Override
     public FID create(long userId) throws RemoteException {
         FID fid = FileSystemUtil.createFile(userId, uniquifier.getAndIncrement(), Parameter.NULL_FID);
-        Log.getInstance().i("userId:%d create file %s", userId, fid);
+        Log.getInstance().i("userId:%x create file %s", userId, fid);
         return fid;
     }
 
     @Override
     public FID makeDir(FID parent, long userId) throws RemoteException {
         FID fid = FileSystemUtil.createFile(userId, -uniquifier.getAndIncrement(), parent);
-        Log.getInstance().i("userId:%d make directory %s", userId, fid);
+        Log.getInstance().i("userId:%x make directory %s", userId, fid);
         return fid;
     }
 
     @Override
     public void remove(FID fid, long userId) throws RemoteException {
-
+        Log.getInstance().i("userId:%x remove %s", userId, fid);
+        FileSystemUtil.remove(fid);
     }
 
     @Override
@@ -86,7 +88,14 @@ public class Vice extends UnicastRemoteObject implements ViceInterface {
 
     @Override
     public void removeCallback(FID fid, long userId) throws RemoteException {
-
+        Log.getInstance().i("userId:%x remove callback %s", userId, fid);
+        List<Long> callbackList = FileSystemUtil.getCallbackPromiseList(fid);
+        for (long cp : callbackList) {
+            if (cp != userId) {
+                Log.getInstance().i("break callback: userid:%x, fid:%s", cp, fid);
+                clientMap.get(cp).breakCallBack(fid);
+            }
+        }
     }
 
 }

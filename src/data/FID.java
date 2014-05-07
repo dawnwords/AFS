@@ -83,4 +83,11 @@ public class FID implements Serializable {
 
         return true;
     }
+
+    @Override
+    public int hashCode() {
+        int result = (int) (userId ^ (userId >>> 32));
+        result = 31 * result + uniquifier;
+        return result;
+    }
 }

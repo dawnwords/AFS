@@ -21,6 +21,8 @@ public class Parameter {
     public static final FID NULL_FID = new FID(0, 0);
     public static final String KEY = "19920526";
     public static final byte[] ALIGNMENT = new byte[Parameter.ALIGN_LEN + Parameter.FILE_BLOCK_NAME_LEN];
+    public static final String PARENT_DIR = "..";
 
     public static String VENUS_DIR = "D:" + File.separator + "afs.client.%d" + File.separator;
+    public static final String CALLBACK_PROMISE_EXT = ".cp";
 }

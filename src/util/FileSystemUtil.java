@@ -4,11 +4,14 @@ import data.FID;
 import data.FileAttributes;
 import data.FileHandler;
 import data.Parameter;
+import vice.Log;
 
 import java.io.*;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -163,4 +166,113 @@ public class FileSystemUtil {
         }
         return map;
     }
+
+    public static boolean fileExist(FID fid, String rootDir) {
+        return new File(rootDir + fid.toString()).exists();
+    }
+
+
+    public static boolean removeFile(FID fid, String rootDir) {
+        return new File(rootDir + fid.toString()).delete();
+    }
+
+    public static void remove(FID fid) {
+        if (fileExist(fid, Parameter.VICE_DIR)) {
+            if (fid.isDirectory()) {
+                for (FID child : getNameFIDMap(readFile(fid, Parameter.VICE_DIR)).values()) {
+                    remove(child);
+                }
+            }
+            removeFile(fid, Parameter.VICE_DIR);
+        }
+    }
+
+    public static void addCallbackPromise(FID fid, long userId) {
+        List<Long> origin = getCallbackPromiseList(fid);
+        if (!origin.contains(userId)) {
+            FileOutputStream fos = null;
+            try {
+                fos = new FileOutputStream(Parameter.VICE_DIR + fid.toString() + Parameter.CALLBACK_PROMISE_EXT, true);
+                fos.write(DataTypeUtil.long2ByteArray(userId));
+                fos.flush();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                close(fos);
+            }
+        }
+    }
+
+    public static List<Long> getCallbackPromiseList(FID fid) {
+        FileInputStream fis = null;
+        List<Long> result = new LinkedList<Long>();
+        try {
+            fis = new FileInputStream(Parameter.VICE_DIR + fid.toString() + Parameter.CALLBACK_PROMISE_EXT);
+            byte[] item = new byte[8];
+            while ((fis.read(item)) > 0) {
+                result.add(DataTypeUtil.byteArray2Long(item));
+            }
+        } catch (Exception ignored) {
+        } finally {
+            close(fis);
+        }
+        return result;
+    }
+
+    public static Map<FID, Boolean> getLocalCallbackPromise() {
+        Map<FID, Boolean> map = new LinkedHashMap<FID, Boolean>();
+        FileInputStream fis = null;
+        try {
+            fis = new FileInputStream(Parameter.VENUS_DIR + Parameter.CALLBACK_PROMISE_EXT);
+            byte[] fid = new byte[12];
+            byte[] valid = new byte[1];
+            while ((fis.read(fid)) > 0) {
+                fis.read(valid);
+                map.put(new FID(fid), valid[0] != 0);
+            }
+        } catch (Exception ignored) {
+        } finally {
+            close(fis);
+        }
+        Log.getInstance().i("read local cp");
+        printCPMap(map);
+        return map;
+    }
+
+    public static void storeLocalCallbackPromise(Map<FID, Boolean> map) {
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(Parameter.VENUS_DIR + Parameter.CALLBACK_PROMISE_EXT);
+            for (FID fid : map.keySet()) {
+                fos.write(fid.getBytes());
+                fos.write(new byte[]{(byte) (map.get(fid) ? 1 : 0)});
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            close(fos);
+        }
+        Log.getInstance().i("write local cp");
+        printCPMap(map);
+    }
+
+    private static void printCPMap(Map<FID, Boolean> map) {
+        Log.getInstance().i("-----------");
+        for (FID fid : map.keySet()) {
+            Log.getInstance().i("%s\t%s", map.get(fid) ? "Valid" : "Canceled", fid.toString());
+        }
+        Log.getInstance().i("-----------");
+    }
+
+    public static void main(String[] args) {
+        Parameter.VENUS_DIR = String.format(Parameter.VENUS_DIR, 3309);
+        Map<FID, Boolean> map = getLocalCallbackPromise();
+        map.put(new FID(0, -1), true);
+        storeLocalCallbackPromise(map);
+        map = getLocalCallbackPromise();
+        map.put(new FID(0, -1), false);
+        storeLocalCallbackPromise(map);
+    }
+
+
 }
