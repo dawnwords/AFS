@@ -3,6 +3,8 @@ package venus.cmd;
 import venus.Venus;
 
 /**
+ * exit Command Handler
+ * <p/>
  * Created by Dawnwords on 2014/5/6.
  */
 public class ExitCommand implements Command {

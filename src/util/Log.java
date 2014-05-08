@@ -1,4 +1,4 @@
-package vice;
+package util;
 
 /**
  * Created by Dawnwords on 2014/5/6.

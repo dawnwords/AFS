@@ -7,6 +7,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.Serializable;
 
 /**
+ * File Attribute Class
+ * <p/>
+ * +--------------------+-------------------+
+ * |     createTime     |    modifiedTime   |
+ * +--------------------+-------------------+
+ * |     creatorId      |     modifierId    |
+ * +---------+----------+-------------------+
+ * |   size  |        parentDirFID          |
+ * +---------+------------------------------+
+ * 0         32         64                  128
+ * <p/>
  * Created by Dawnwords on 2014/5/4.
  */
 public class FileAttributes implements Serializable {
@@ -15,7 +26,8 @@ public class FileAttributes implements Serializable {
     private int fileSize;
     private FID parentDir;
 
-    public FileAttributes() {
+    public FID getParentDir() {
+        return parentDir;
     }
 
     public void modify(long userId, int newSize) {
@@ -24,8 +36,25 @@ public class FileAttributes implements Serializable {
         fileSize = newSize;
     }
 
-    public FID getParentDir() {
-        return parentDir;
+    public byte[] getBytes() {
+        ByteArrayOutputStream bos = null;
+        byte[] result = null;
+        try {
+            bos = new ByteArrayOutputStream();
+            bos.write(DataTypeUtil.long2ByteArray(createdTime));
+            bos.write(DataTypeUtil.long2ByteArray(modifiedTime));
+            bos.write(DataTypeUtil.long2ByteArray(creatorId));
+            bos.write(DataTypeUtil.long2ByteArray(modifierId));
+            bos.write(DataTypeUtil.int2ByteArray(fileSize));
+            bos.write(parentDir.getBytes());
+            bos.flush();
+            result = bos.toByteArray();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            FileSystemUtil.close(bos);
+        }
+        return result;
     }
 
     public static FileAttributes createFileAttributes(long createdTime, long modifiedTime,
@@ -51,25 +80,4 @@ public class FileAttributes implements Serializable {
         return result;
     }
 
-    public byte[] getBytes() {
-        ByteArrayOutputStream bos = null;
-        byte[] result = null;
-        try {
-            bos = new ByteArrayOutputStream();
-            bos.write(DataTypeUtil.long2ByteArray(createdTime));
-            bos.write(DataTypeUtil.long2ByteArray(modifiedTime));
-            bos.write(DataTypeUtil.long2ByteArray(creatorId));
-            bos.write(DataTypeUtil.long2ByteArray(modifierId));
-            bos.write(DataTypeUtil.int2ByteArray(fileSize));
-            bos.write(parentDir.getBytes());
-            bos.flush();
-            result = bos.toByteArray();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            FileSystemUtil.close(bos);
-        }
-        return result;
-    }
 }
-

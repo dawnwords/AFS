@@ -6,7 +6,6 @@ import util.FileSystemUtil;
 import venus.cmd.Command;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.InputStreamReader;
 import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
@@ -25,12 +24,7 @@ public class Main {
             System.err.println("Arg Format Error: should be(%ip %port)");
             System.exit(-1);
         }
-
         Parameter.VENUS_DIR = String.format(Parameter.VENUS_DIR, venusRMIPort);
-        File venusDir = new File(Parameter.VENUS_DIR);
-        if (!venusDir.exists()) {
-            venusDir.mkdir();
-        }
 
         Venus venus = null;
         try {
@@ -47,9 +41,9 @@ public class Main {
         }
 
         BufferedReader reader = null;
-        String line;
         try {
             reader = new BufferedReader(new InputStreamReader(System.in));
+            String line;
             while ((line = reader.readLine()) != null) {
                 processLine(venus, line);
             }

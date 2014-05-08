@@ -4,6 +4,8 @@ import data.Parameter;
 import venus.Venus;
 
 /**
+ * touch Command Handler
+ * <p/>
  * Created by Dawnwords on 2014/5/6.
  */
 public class TouchCommand implements Command {

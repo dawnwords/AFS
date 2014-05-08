@@ -1,18 +1,26 @@
 package data;
 
 import util.DataTypeUtil;
-import util.FileSystemUtil;
 
-import java.io.ByteArrayOutputStream;
 import java.io.Serializable;
 
 /**
+ * File Identifier Class
+ * </p>
+ * +--------------------+---------------+
+ * |        userId      |   uniquifier  |
+ * +--------------------+---------------+
+ * 0                    64              96
+ * </p>
  * Created by Dawnwords on 2014/5/5.
  */
 public class FID implements Serializable {
     private long userId;
     private int uniquifier;
 
+    /**
+     * Constructors
+     */
     public FID() {
     }
 
@@ -30,6 +38,9 @@ public class FID implements Serializable {
         this.uniquifier = DataTypeUtil.byteArray2Int(DataTypeUtil.subArray(bytes, 8, 4));
     }
 
+    /**
+     * Getter
+     */
     public int getUniquifier() {
         return Math.abs(uniquifier);
     }
@@ -49,26 +60,9 @@ public class FID implements Serializable {
         return result;
     }
 
-    private byte[] parseFID(long userId, int uniquifier) {
-        byte[] result = null;
-        ByteArrayOutputStream bos = null;
-        try {
-            bos = new ByteArrayOutputStream();
-            bos.write(DataTypeUtil.long2ByteArray(userId));
-            bos.write(DataTypeUtil.int2ByteArray(uniquifier));
-            bos.flush();
-            result = bos.toByteArray();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            FileSystemUtil.close(bos);
-        }
-        return result;
-    }
-
     @Override
     public String toString() {
-        return DataTypeUtil.byteArray2HexString(parseFID(userId, uniquifier));
+        return DataTypeUtil.byteArray2HexString(getBytes());
     }
 
     @Override

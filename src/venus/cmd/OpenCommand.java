@@ -4,6 +4,8 @@ import data.Lock;
 import venus.Venus;
 
 /**
+ * open Command Handler
+ * <p/>
  * Created by Dawnwords on 2014/5/8.
  */
 public class OpenCommand implements Command {

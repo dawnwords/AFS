@@ -6,6 +6,9 @@ import util.SecurityUtil;
 import java.io.Serializable;
 
 /**
+ * File Handler Class
+ * holding FileAttributes and file data as byte array
+ * <p/>
  * Created by Dawnwords on 2014/5/4.
  */
 public class FileHandler implements Serializable {
@@ -35,10 +38,16 @@ public class FileHandler implements Serializable {
         return result;
     }
 
+    /**
+     * encrypt data of the file
+     */
     public void encrypt() {
         data = SecurityUtil.encrypt(data);
     }
 
+    /**
+     * decrypt data of the file
+     */
     public void decrypt() {
         data = SecurityUtil.decrypt(data);
     }

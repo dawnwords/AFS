@@ -1,24 +1,11 @@
 package util;
 
 /**
+ * Data Type Transforming Util Class
+ * <p/>
  * Created by Dawnwords on 2014/5/5.
  */
 public class DataTypeUtil {
-
-    public static String byteArray2BinaryString(byte[] bytes, String separator) {
-        String result = "";
-        for (byte b : bytes) {
-            if (result.length() > 0) {
-                result += separator;
-            }
-            result += Integer.toBinaryString(b + 0x100).substring(1);
-        }
-        return result;
-    }
-
-    public static String byteArray2BinaryString(byte[] bytes) {
-        return byteArray2BinaryString(bytes, "-");
-    }
 
     public static byte[] hexString2ByteArray(String s) {
         int len = s.length();

@@ -1,6 +1,8 @@
 package data;
 
 /**
+ * Vice Service Lock Class
+ * <p/>
  * Created by Dawnwords on 2014/5/4.
  */
 public class Lock {
@@ -9,6 +11,10 @@ public class Lock {
     private FID fid;
     private LockMode mode;
 
+    /**
+     * Lock Mode Enumerator
+     * namely,shared lock mode and exclusive lock mode
+     */
     public static enum LockMode {
         SHARED, EXCLUSIVE;
     }
@@ -18,14 +24,6 @@ public class Lock {
         this.fid = fid;
         this.mode = mode;
         this.requestTime = System.currentTimeMillis();
-    }
-
-    public long getUserId() {
-        return userId;
-    }
-
-    public LockMode getMode() {
-        return mode;
     }
 
     public boolean isExpire() {

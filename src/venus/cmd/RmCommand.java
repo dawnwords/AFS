@@ -3,6 +3,8 @@ package venus.cmd;
 import venus.Venus;
 
 /**
+ * rm Command Handler
+ * <p/>
  * Created by Dawnwords on 2014/5/7.
  */
 public class RmCommand implements Command {

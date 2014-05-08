@@ -8,6 +8,7 @@ import interfaces.VenusInterface;
 import interfaces.ViceInterface;
 import util.DataTypeUtil;
 import util.FileSystemUtil;
+import util.Log;
 
 import java.rmi.Naming;
 import java.rmi.RemoteException;
@@ -31,7 +32,8 @@ public class Vice extends UnicastRemoteObject implements ViceInterface {
     private AtomicInteger uniquifier;
 
     protected Vice() throws RemoteException {
-        FileSystemUtil.initRootDir();
+        FileSystemUtil.initRootDir(Parameter.VICE_DIR);
+        FileSystemUtil.createFile(Parameter.ROOT_FID, Parameter.ROOT_FID);
         clientMap = new ConcurrentHashMap<Long, VenusInterface>();
         uniquifier = new AtomicInteger(FileSystemUtil.getStartUniquifier());
         lockQueue = new ConcurrentLinkedQueue<Lock>();
@@ -69,14 +71,16 @@ public class Vice extends UnicastRemoteObject implements ViceInterface {
 
     @Override
     public FID create(long userId) throws RemoteException {
-        FID fid = FileSystemUtil.createFile(userId, uniquifier.getAndIncrement(), Parameter.NULL_FID);
+        FID fid = new FID(userId, uniquifier.getAndIncrement());
+        FileSystemUtil.createFile(fid, Parameter.NULL_FID);
         Log.getInstance().i("userId:%x create file %s", userId, fid);
         return fid;
     }
 
     @Override
     public FID makeDir(FID parent, long userId) throws RemoteException {
-        FID fid = FileSystemUtil.createFile(userId, -uniquifier.getAndIncrement(), parent);
+        FID fid = new FID(userId, -uniquifier.getAndIncrement());
+        FileSystemUtil.createFile(fid, parent);
         Log.getInstance().i("userId:%x make directory %s", userId, fid);
         return fid;
     }

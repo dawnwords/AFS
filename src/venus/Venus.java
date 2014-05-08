@@ -42,6 +42,7 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
     }
 
     public Venus(ViceInterface vice, String venusRMI) throws RemoteException {
+        FileSystemUtil.initRootDir(Parameter.VENUS_DIR);
         this.vice = vice;
         this.userId = DataTypeUtil.longHash(venusRMI);
         this.currentDir = Parameter.ROOT_FID;

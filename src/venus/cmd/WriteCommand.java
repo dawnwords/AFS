@@ -3,6 +3,8 @@ package venus.cmd;
 import venus.Venus;
 
 /**
+ * write Command Handler
+ * <p/>
  * Created by Dawnwords on 2014/5/8.
  */
 public class WriteCommand implements Command {

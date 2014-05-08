@@ -8,6 +8,8 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 /**
+ * Server Vice Interface
+ * <p/>
  * Created by Dawnwords on 2014/5/4.
  */
 public interface ViceInterface extends Remote {

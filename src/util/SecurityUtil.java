@@ -9,6 +9,9 @@ import javax.crypto.spec.DESKeySpec;
 import java.security.SecureRandom;
 
 /**
+ * Security Util Class using java-DES to encrypt and decrypt byte array
+ * with given KEY store in both client and server side
+ * <p/>
  * Created by Dawnwords on 2014/5/6.
  */
 public class SecurityUtil {
