@@ -220,8 +220,8 @@ public class FileSystemUtil {
         } finally {
             close(fis);
         }
-        Log.getInstance().i("read local cp");
-        printCPMap(map);
+//        Log.getInstance().i("read local cp");
+//        printCPMap(map);
         return map;
     }
 
@@ -238,8 +238,8 @@ public class FileSystemUtil {
         } finally {
             close(fos);
         }
-        Log.getInstance().i("write local cp");
-        printCPMap(map);
+//        Log.getInstance().i("write local cp");
+//        printCPMap(map);
     }
 
     private static void printCPMap(Map<FID, Boolean> map) {

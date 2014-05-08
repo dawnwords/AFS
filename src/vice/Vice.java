@@ -2,7 +2,7 @@ package vice;
 
 import data.FID;
 import data.FileHandler;
-import data.LockMode;
+import data.Lock;
 import data.Parameter;
 import interfaces.VenusInterface;
 import interfaces.ViceInterface;
@@ -12,8 +12,12 @@ import util.FileSystemUtil;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -22,13 +26,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class Vice extends UnicastRemoteObject implements ViceInterface {
 
-    private HashMap<Long, VenusInterface> clientMap;
+    private Map<Long, VenusInterface> clientMap;
+    private Queue<Lock> lockQueue;
     private AtomicInteger uniquifier;
 
     protected Vice() throws RemoteException {
         FileSystemUtil.initRootDir();
-        clientMap = new HashMap<Long, VenusInterface>();
+        clientMap = new ConcurrentHashMap<Long, VenusInterface>();
         uniquifier = new AtomicInteger(FileSystemUtil.getStartUniquifier());
+        lockQueue = new ConcurrentLinkedQueue<Lock>();
     }
 
     @Override
@@ -47,12 +53,17 @@ public class Vice extends UnicastRemoteObject implements ViceInterface {
     public FileHandler fetch(FID fid, long userId) throws RemoteException {
         Log.getInstance().i("userId:%x fetch:%s", userId, fid);
         FileSystemUtil.addCallbackPromise(fid, userId);
-        return FileSystemUtil.readFile(fid, Parameter.VICE_DIR);
+        FileHandler fileHandler = FileSystemUtil.readFile(fid, Parameter.VICE_DIR);
+        if (fileHandler != null) {
+            fileHandler.encrypt();
+        }
+        return fileHandler;
     }
 
     @Override
     public void store(FID fid, FileHandler handler, long userId) throws RemoteException {
         Log.getInstance().i("userId:%x store:%s", userId, fid);
+        handler.decrypt();
         FileSystemUtil.writeFile(fid, handler, Parameter.VICE_DIR);
     }
 
@@ -78,13 +89,35 @@ public class Vice extends UnicastRemoteObject implements ViceInterface {
 
 
     @Override
-    public void setLock(FID fid, LockMode mode, long userId) throws RemoteException {
-
+    public boolean setLock(FID fid, Lock.LockMode mode, long userId) throws RemoteException {
+        Iterator<Lock> iterator = lockQueue.iterator();
+        while (iterator.hasNext()) {
+            Lock lock = iterator.next();
+            if (lock.isExpire()) {
+                iterator.remove();
+                Log.getInstance().i("lock expire:userId:%x fid:%s", userId, fid);
+            } else if (lock.isLocked(fid, mode)) {
+                return false;
+            }
+        }
+        lockQueue.add(new Lock(userId, fid, mode));
+        Log.getInstance().i("userId:%x %s lock file %s", userId, mode, fid);
+        return true;
     }
 
     @Override
     public void releaseLock(FID fid, long userId) throws RemoteException {
-
+        Iterator<Lock> iterator = lockQueue.iterator();
+        while (iterator.hasNext()) {
+            Lock lock = iterator.next();
+            if (lock.isExpire()) {
+                iterator.remove();
+                Log.getInstance().i("lock expire:userId:%x fid:%s", userId, fid);
+            } else if (lock.sameLock(fid, userId)) {
+                iterator.remove();
+                Log.getInstance().i("userId:%x release lock %s", userId, fid);
+            }
+        }
     }
 
     @Override

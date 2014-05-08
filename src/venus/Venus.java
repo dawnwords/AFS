@@ -2,6 +2,7 @@ package venus;
 
 import data.FID;
 import data.FileHandler;
+import data.Lock;
 import data.Parameter;
 import interfaces.VenusInterface;
 import interfaces.ViceInterface;
@@ -19,7 +20,26 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
     private ViceInterface vice;
     private long userId;
 
-    private FID currentDir;
+    private FID currentDir, currentFile;
+    private FileHandler openFile;
+    private Lock.LockMode mode;
+
+    public static enum OpenError {
+        CURRENT_DIR_NOT_EXISIT("Current dir not exists"),
+        NO_SUCH_FILE("No such file"),
+        FILE_LOCKED("File has locked"),
+        SUCCESS("Success");
+
+        private String errorMsg;
+
+        OpenError(String errorMsg) {
+            this.errorMsg = errorMsg;
+        }
+
+        public String getErrorMsg() {
+            return errorMsg;
+        }
+    }
 
     public Venus(ViceInterface vice, String venusRMI) throws RemoteException {
         this.vice = vice;
@@ -30,6 +50,66 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
     @Override
     public void breakCallBack(FID fid) throws RemoteException {
         cancelCallback(fid);
+    }
+
+    public OpenError open(String filename, Lock.LockMode mode) {
+        FileHandler currentDirHandler = fetch(currentDir);
+        if (currentDirHandler == null) {
+            return OpenError.CURRENT_DIR_NOT_EXISIT;
+        }
+        Map<String, FID> map = FileSystemUtil.getNameFIDMap(currentDirHandler);
+        FID fid = map.get(filename);
+        if (fid == null || fid.isDirectory()) {
+            return OpenError.NO_SUCH_FILE;
+        }
+        currentFile = fid;
+        try {
+            if (vice.setLock(fid, mode, userId)) {
+                openFile = fetch(fid);
+                if (openFile != null) {
+                    this.mode = mode;
+                    return OpenError.SUCCESS;
+                }
+            } else {
+                return OpenError.FILE_LOCKED;
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        return OpenError.NO_SUCH_FILE;
+    }
+
+    public String read() {
+        if (openFile != null) {
+            return new String(openFile.getData());
+        }
+        return null;
+    }
+
+    public boolean write(String content, boolean append) {
+        if (openFile == null || mode != Lock.LockMode.EXCLUSIVE) {
+            return false;
+        }
+        byte[] newBytes = content.getBytes();
+        if (append) {
+            newBytes = DataTypeUtil.arrayCombine(openFile.getData(), content.getBytes());
+        }
+        updateFileHandler(openFile, newBytes);
+        return true;
+    }
+
+    public void close() {
+        if (currentFile != null && openFile != null) {
+            try {
+                store(currentFile, openFile);
+                vice.releaseLock(currentFile, userId);
+                openFile = null;
+                currentFile = null;
+                mode = null;
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public String[] listFile() {
@@ -99,8 +179,12 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
             DataTypeUtil.arrayWrite(newBytes, start + Parameter.FILE_NAME_LEN, fid.getBytes());
             start += Parameter.FILE_ITEM_LEN;
         }
-        dir.setData(newBytes);
-        dir.getAttributes().modify(userId, newBytes.length);
+        updateFileHandler(dir, newBytes);
+    }
+
+    private void updateFileHandler(FileHandler handler, byte[] newBytes) {
+        handler.setData(newBytes);
+        handler.getAttributes().modify(userId, newBytes.length);
     }
 
     private boolean create(String name, boolean isDir) {
@@ -128,6 +212,7 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
         if (FileSystemUtil.writeWithChecksum(fid, handler.getBytes())) {
             // update remote
             try {
+                handler.encrypt();
                 vice.store(fid, handler, userId);
                 vice.removeCallback(fid, userId);
             } catch (Exception e) {
@@ -145,6 +230,7 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
         try {
             handler = vice.fetch(fid, userId);
             if (handler != null) {
+                handler.decrypt();
                 FileSystemUtil.writeFile(fid, handler, Parameter.VENUS_DIR);
                 validCallback(fid);
             } else {
