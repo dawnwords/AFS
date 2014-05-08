@@ -73,8 +73,9 @@ public class Vice extends UnicastRemoteObject implements ViceInterface {
     @Override
     public void remove(FID fid, long userId) throws RemoteException {
         Log.getInstance().i("userId:%x remove %s", userId, fid);
-        FileSystemUtil.remove(fid);
+        removeR(fid, userId);
     }
+
 
     @Override
     public void setLock(FID fid, LockMode mode, long userId) throws RemoteException {
@@ -95,6 +96,21 @@ public class Vice extends UnicastRemoteObject implements ViceInterface {
                 Log.getInstance().i("break callback: userid:%x, fid:%s", cp, fid);
                 clientMap.get(cp).breakCallBack(fid);
             }
+        }
+    }
+
+    private void removeR(FID fid, long userId) throws RemoteException {
+        if (FileSystemUtil.fileExist(fid, Parameter.VICE_DIR)) {
+            if (fid.isDirectory()) {
+                FileHandler handler = FileSystemUtil.readFile(fid, Parameter.VICE_DIR);
+                if (handler != null) {
+                    for (FID child : FileSystemUtil.getNameFIDMap(handler).values()) {
+                        removeR(child, userId);
+                    }
+                }
+            }
+            removeCallback(fid, userId);
+            FileSystemUtil.removeFile(fid, Parameter.VICE_DIR);
         }
     }
 

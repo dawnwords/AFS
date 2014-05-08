@@ -47,6 +47,10 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
     }
 
     public boolean changeDir(String name) {
+        if (Parameter.ROOT_DIR.equals(name)) {
+            currentDir = Parameter.ROOT_FID;
+            return true;
+        }
         FileHandler currentDirHandler = fetch(currentDir);
         if (currentDirHandler != null) {
             if (Parameter.PARENT_DIR.equals(name)) {
@@ -65,13 +69,15 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
 
     public boolean remove(String name) {
         FileHandler currentDirHandler = fetch(currentDir);
-        Map<String, FID> map = FileSystemUtil.getNameFIDMap(currentDirHandler);
-        FID toRemove = map.remove(name);
-        if (toRemove != null) {
-            updateDirectoryHandler(currentDirHandler, map);
-            store(currentDir, currentDirHandler);
-            remove(toRemove);
-            return true;
+        if (currentDirHandler != null) {
+            Map<String, FID> map = FileSystemUtil.getNameFIDMap(currentDirHandler);
+            FID toRemove = map.remove(name);
+            if (toRemove != null) {
+                updateDirectoryHandler(currentDirHandler, map);
+                store(currentDir, currentDirHandler);
+                remove(toRemove);
+                return true;
+            }
         }
         return false;
     }
@@ -154,8 +160,11 @@ public class Venus extends UnicastRemoteObject implements VenusInterface {
     private void remove(FID fid) {
         if (FileSystemUtil.fileExist(fid, Parameter.VENUS_DIR)) {
             if (fid.isDirectory()) {
-                for (FID child : FileSystemUtil.getNameFIDMap(fetch(fid)).values()) {
-                    remove(child);
+                FileHandler handler = fetch(fid);
+                if (handler != null) {
+                    for (FID child : FileSystemUtil.getNameFIDMap(handler).values()) {
+                        remove(child);
+                    }
                 }
             }
             FileSystemUtil.removeFile(fid, Parameter.VENUS_DIR);

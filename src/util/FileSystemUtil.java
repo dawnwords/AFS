@@ -44,18 +44,6 @@ public class FileSystemUtil {
     }
 
     public static FileHandler readFile(FID fid, String rootDir) {
-        // TODO callback promise
-        byte[] file = read(fid, rootDir);
-
-        FileAttributes attributes = FileAttributes.createFileAttributes(file);
-        byte[] data = new byte[file.length - Parameter.FILE_ITEM_LEN];
-        if (file.length > Parameter.FILE_ITEM_LEN) {
-            System.arraycopy(file, Parameter.FILE_ITEM_LEN, data, 0, data.length);
-        }
-        return FileHandler.createFileHandler(attributes, data);
-    }
-
-    private static byte[] read(FID fid, String rootDir) {
         FileInputStream fis = null;
         byte[] file = null;
         try {
@@ -67,7 +55,16 @@ public class FileSystemUtil {
         } finally {
             close(fis);
         }
-        return file;
+
+        if (file != null) {
+            FileAttributes attributes = FileAttributes.createFileAttributes(file);
+            byte[] data = new byte[file.length - Parameter.FILE_ITEM_LEN];
+            if (file.length > Parameter.FILE_ITEM_LEN) {
+                System.arraycopy(file, Parameter.FILE_ITEM_LEN, data, 0, data.length);
+            }
+            return FileHandler.createFileHandler(attributes, data);
+        }
+        return null;
     }
 
     public static void writeFile(FID fid, FileHandler handler, String rootDir) {
@@ -174,17 +171,6 @@ public class FileSystemUtil {
 
     public static boolean removeFile(FID fid, String rootDir) {
         return new File(rootDir + fid.toString()).delete();
-    }
-
-    public static void remove(FID fid) {
-        if (fileExist(fid, Parameter.VICE_DIR)) {
-            if (fid.isDirectory()) {
-                for (FID child : getNameFIDMap(readFile(fid, Parameter.VICE_DIR)).values()) {
-                    remove(child);
-                }
-            }
-            removeFile(fid, Parameter.VICE_DIR);
-        }
     }
 
     public static void addCallbackPromise(FID fid, long userId) {

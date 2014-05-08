@@ -22,6 +22,7 @@ public class Parameter {
     public static final String KEY = "19920526";
     public static final byte[] ALIGNMENT = new byte[Parameter.ALIGN_LEN + Parameter.FILE_BLOCK_NAME_LEN];
     public static final String PARENT_DIR = "..";
+    public static final String ROOT_DIR = "/";
 
     public static String VENUS_DIR = "D:" + File.separator + "afs.client.%d" + File.separator;
     public static final String CALLBACK_PROMISE_EXT = ".cp";
